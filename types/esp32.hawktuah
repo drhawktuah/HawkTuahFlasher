@@ -1,0 +1,16 @@
+name        = "ESP32"
+vendor      = "Espressif"
+family      = "ESP32"
+
+detect:
+    vid = 0x303A
+    vid = 0x10C4
+    vid = 0x1A86
+
+protocol:
+    bootloader = "esp32-rom"
+
+flash:
+    baudrate = 921600
+    erase = true
+    verify = true
