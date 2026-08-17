@@ -1,16 +1,31 @@
-name        = "ESP32"
-vendor      = "Espressif"
-family      = "ESP32"
+# @description ESP32 microcontroller family
+# @vendor Espressif Systems
+# @family ESP32
+
+name = "ESP32"
+vendor = "Espressif"
+family = "ESP32"
 
 detect:
+    # @description Native ESP32 USB
     vid = 0x303A
+
+    # @description Silicon Labs CP210x
     vid = 0x10C4
+
+    # @description QinHeng CH340/CH341
     vid = 0x1A86
 
 protocol:
+    # @description ESP32 ROM bootloader
     bootloader = "esp32-rom"
 
 flash:
+    # @description Flash baud rate
     baudrate = 921600
+
+    # @description Erase before flashing
     erase = true
+
+    # @description Verify written data
     verify = true
