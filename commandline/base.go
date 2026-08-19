@@ -23,11 +23,15 @@ const (
 
 type Command struct {
 	Aliases     [MaxAliasesLength]string
-	Name        string
-	Description string
-	Usage       string
+	Name        				  string
+	Description                   string
+	Usage       				  string
 
-	Dependencies       []Dependency
+	Arguments		 []Argument
+	Options   		 []Option
+	Flags     		 []Flag
+
+	Dependencies     []Dependency
 	DependencyStatus []DependencyStatus
 
 	Run func(context *Context, arguments []string) error
@@ -87,12 +91,16 @@ type Commands struct {
 	UnavailableLength int
 }
 
+func (commands *Commands) IsAvailable(name string) bool {
+	panic("unimplemented")
+}
+
 func (commands *Commands) removeUnavailable(index int) {
 	if index < 0 || index >= commands.UnavailableLength {
 		return
 	}
 
-	copy(commands.Unavailable[index:], commands.Unavailable[index + 1:commands.UnavailableLength])
+	copy(commands.Unavailable[index:], commands.Unavailable[index+1:commands.UnavailableLength])
 
 	commands.UnavailableLength--
 	commands.Unavailable[commands.UnavailableLength] = Command{}
@@ -103,7 +111,7 @@ func (commands *Commands) removeAvailable(index int) {
 		return
 	}
 
-	copy(commands.Available[index:], commands.Available[index + 1:commands.AvailableLength])
+	copy(commands.Available[index:], commands.Available[index+1:commands.AvailableLength])
 
 	commands.AvailableLength--
 	commands.Available[commands.AvailableLength] = Command{}
@@ -183,7 +191,7 @@ func (commands *Commands) moveUnavailableToAvailable(index int) bool {
 	return true
 }
 
-func (commands *Commands) dependenciesAvailable(command* Command, context* Context) bool {
+func (commands *Commands) dependenciesAvailable(command *Command, context *Context) bool {
 	for _, dependency := range command.Dependencies {
 		if dependency.Check == nil {
 			if dependency.Required {
@@ -264,7 +272,7 @@ func (commands *Commands) RegisterCommand(command Command) error {
 			continue
 		}
 
-		if slices.Contains(command.Aliases[index + 1:], alias) {
+		if slices.Contains(command.Aliases[index+1:], alias) {
 			return fmt.Errorf("alias %q is registered more than once for command %q", alias, command.Name)
 		}
 	}
@@ -373,15 +381,15 @@ func (commands *Commands) SetAvailable(name string, available bool) bool {
 	return true
 }
 
-func (commands* Commands) CheckDependencies(command* Command, context* Context) bool {
+func (commands *Commands) CheckDependencies(command *Command, context *Context) bool {
 	command.DependencyStatus = command.DependencyStatus[:0]
 
 	available := true
 
 	for _, dependency := range command.Dependencies {
-		status := DependencyStatus {
+		status := DependencyStatus{
 			Dependency: dependency,
-			Available: true,
+			Available:  true,
 		}
 
 		if dependency.Check != nil {

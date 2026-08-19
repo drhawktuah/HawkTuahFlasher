@@ -13,8 +13,8 @@ const (
 )
 
 type Parser struct {
-	tokens []Token
-	index  int
+	tokens 				 []Token
+	index  				   int
 
 	pendingDocumentation []DocumentationComment
 }
@@ -124,32 +124,32 @@ func (parser *Parser) parseRootProperty(definition *Definition) error {
 	parser.advance()
 
 	switch key.Value {
-	case "name":
-		if value.Type != TokenString {
-			return parser.expected(value, TokenString)
-		}
+		case "name":
+			if value.Type != TokenString {
+				return parser.expected(value, TokenString)
+			}
 
-		definition.Name = value.Value
-		parser.applyPendingDocumentation(&definition.NameDocumentation)
+			definition.Name = value.Value
+			parser.applyPendingDocumentation(&definition.NameDocumentation)
 
-	case "vendor":
-		if value.Type != TokenString {
-			return parser.expected(value, TokenString)
-		}
+		case "vendor":
+			if value.Type != TokenString {
+				return parser.expected(value, TokenString)
+			}
 
-		definition.Vendor = value.Value
-		parser.applyPendingDocumentation(&definition.VendorDocumentation)
+			definition.Vendor = value.Value
+			parser.applyPendingDocumentation(&definition.VendorDocumentation)
 
-	case "family":
-		if value.Type != TokenString {
-			return parser.expected(value, TokenString)
-		}
+		case "family":
+			if value.Type != TokenString {
+				return parser.expected(value, TokenString)
+			}
 
-		definition.Family = value.Value
-		parser.applyPendingDocumentation(&definition.FamilyDocumentation)
+			definition.Family = value.Value
+			parser.applyPendingDocumentation(&definition.FamilyDocumentation)
 
-	default:
-		return parser.errorf(key, "unknown root property %q", key.Value)
+		default:
+			return parser.errorf(key, "unknown root property %q", key.Value)
 	}
 
 	return nil
@@ -157,7 +157,6 @@ func (parser *Parser) parseRootProperty(definition *Definition) error {
 
 func (parser *Parser) parseSection(definition *Definition) error {
 	section := parser.current()
-
 	parser.advance()
 
 	if err := parser.expect(TokenColon); err != nil {
@@ -165,23 +164,23 @@ func (parser *Parser) parseSection(definition *Definition) error {
 	}
 
 	switch strings.ToLower(section.Value) {
-	case "detect":
-		return parser.parseDetect(definition)
+		case "detect":
+			return parser.parseDetect(definition)
 
-	case "protocol":
-		return parser.parseProtocol(definition)
+		case "protocol":
+			return parser.parseProtocol(definition)
 
-	case "flash":
-		return parser.parseFlash(definition)
+		case "flash":
+			return parser.parseFlash(definition)
 
-	case "custom":
-		return parser.parseCustom(definition)
+		case "custom":
+			return parser.parseCustom(definition)
 
-	case "cmake":
-		return parser.parseCMake(definition)
+		case "cmake":
+			return parser.parseCMake(definition)
 
-	default:
-		return parser.errorf(section, "unknown section %q", section.Value)
+		default:
+			return parser.errorf(section, "unknown section %q", section.Value)
 	}
 }
 
@@ -213,29 +212,25 @@ func (parser *Parser) parseDetect(definition *Definition) error {
 		parser.advance()
 
 		switch strings.ToLower(key.Value) {
-		case "vid":
-			if value.Type != TokenNumber {
-				return parser.expected(value, TokenNumber)
-			}
+			case "vid":
+				if value.Type != TokenNumber {
+					return parser.expected(value, TokenNumber)
+				}
 
-			vid, err := parseUint16(value.Value)
-			if err != nil {
-				return parser.errorf(value, "invalid VID %q: %v", value.Value, err)
-			}
+				vid, err := parseUint16(value.Value)
+				if err != nil {
+					return parser.errorf(value, "invalid VID %q: %v", value.Value, err)
+				}
 
-			detection := DetectionVID{
-				Value:         vid,
-				Documentation: parser.takePendingDocumentation(),
-			}
+				detection := DetectionVID{
+					Value:         vid,
+					Documentation: parser.takePendingDocumentation(),
+				}
 
-			definition.Detect.VIDs = append(definition.Detect.VIDs, detection)
+				definition.Detect.VIDs = append(definition.Detect.VIDs, detection)
 
-		default:
-			return parser.errorf(
-				key,
-				"unknown detect property %q",
-				key.Value,
-			)
+			default:
+				return parser.errorf(key, "unknown detect property %q", key.Value)
 		}
 	}
 
@@ -270,16 +265,16 @@ func (parser *Parser) parseProtocol(definition *Definition) error {
 		parser.advance()
 
 		switch strings.ToLower(key.Value) {
-		case "bootloader":
-			if value.Type != TokenString {
-				return parser.expected(value, TokenString)
-			}
+			case "bootloader":
+				if value.Type != TokenString {
+					return parser.expected(value, TokenString)
+				}
 
-			definition.Protocol.Bootloader = value.Value
-			definition.Protocol.BootloaderDocumentation = parser.takePendingDocumentation()
+				definition.Protocol.Bootloader = value.Value
+				definition.Protocol.BootloaderDocumentation = parser.takePendingDocumentation()
 
-		default:
-			return parser.errorf(key, "unknown protocol property %q", key.Value)
+			default:
+				return parser.errorf(key, "unknown protocol property %q", key.Value)
 		}
 	}
 
@@ -314,47 +309,47 @@ func (parser *Parser) parseFlash(definition *Definition) error {
 		parser.advance()
 
 		switch strings.ToLower(key.Value) {
-		case "baudrate":
-			if value.Type != TokenNumber {
-				return parser.expected(value, TokenNumber)
-			}
+			case "baudrate":
+				if value.Type != TokenNumber {
+					return parser.expected(value, TokenNumber)
+				}
 
-			baudrate, err := parseUint32(value.Value)
-			if err != nil {
-				return parser.errorf(value, "invalid baudrate %q: %v", value.Value, err)
-			}
+				baudrate, err := parseUint32(value.Value)
+				if err != nil {
+					return parser.errorf(value, "invalid baudrate %q: %v", value.Value, err)
+				}
 
-			definition.Flash.Baudrate = baudrate
-			definition.Flash.BaudrateDocumentation = parser.takePendingDocumentation()
+				definition.Flash.Baudrate = baudrate
+				definition.Flash.BaudrateDocumentation = parser.takePendingDocumentation()
 
-		case "erase":
-			if value.Type != TokenBoolean {
-				return parser.expected(value, TokenBoolean)
-			}
+			case "erase":
+				if value.Type != TokenBoolean {
+					return parser.expected(value, TokenBoolean)
+				}
 
-			erase, err := strconv.ParseBool(value.Value)
-			if err != nil {
-				return parser.errorf(value, "invalid erase value %q: %v", value.Value, err)
-			}
+				erase, err := strconv.ParseBool(value.Value)
+				if err != nil {
+					return parser.errorf(value, "invalid erase value %q: %v", value.Value, err)
+				}
 
-			definition.Flash.Erase = erase
-			definition.Flash.EraseDocumentation = parser.takePendingDocumentation()
+				definition.Flash.Erase = erase
+				definition.Flash.EraseDocumentation = parser.takePendingDocumentation()
 
-		case "verify":
-			if value.Type != TokenBoolean {
-				return parser.expected(value, TokenBoolean)
-			}
+			case "verify":
+				if value.Type != TokenBoolean {
+					return parser.expected(value, TokenBoolean)
+				}
 
-			verify, err := strconv.ParseBool(value.Value)
-			if err != nil {
-				return parser.errorf(value, "invalid verify value %q: %v", value.Value, err)
-			}
+				verify, err := strconv.ParseBool(value.Value)
+				if err != nil {
+					return parser.errorf(value, "invalid verify value %q: %v", value.Value, err)
+				}
 
-			definition.Flash.Verify = verify
-			definition.Flash.VerifyDocumentation = parser.takePendingDocumentation()
+				definition.Flash.Verify = verify
+				definition.Flash.VerifyDocumentation = parser.takePendingDocumentation()
 
-		default:
-			return parser.errorf(key, "unknown flash property %q", key.Value)
+			default:
+				return parser.errorf(key, "unknown flash property %q", key.Value)
 		}
 	}
 
@@ -529,13 +524,13 @@ func (parser *Parser) current() Token {
 }
 
 func (parser *Parser) peek() Token {
-	if parser.index+1 >= len(parser.tokens) {
+	if parser.index + 1 >= len(parser.tokens) {
 		return Token{
 			Type: TokenEOF,
 		}
 	}
 
-	return parser.tokens[parser.index+1]
+	return parser.tokens[parser.index + 1]
 }
 
 func (parser *Parser) peekType() TokenType {
