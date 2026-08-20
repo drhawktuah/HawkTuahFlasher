@@ -21,9 +21,9 @@ type Argument struct {
 }
 
 type Option struct {
-	Name        string
+	Name          string
 	Aliases     []string
-	Description string
+	Description   string
 
 	Required bool
 	HasValue bool
@@ -31,9 +31,9 @@ type Option struct {
 }
 
 type Flag struct {
-	Name        string
+	Name          string
 	Aliases     []string
-	Description string
+	Description   string
 
 	Default bool
 }
@@ -45,8 +45,8 @@ type CommandArguments struct {
 }
 
 type ParsedArguments struct {
-	Raw         []string
-	Positionals []string
+	Raw            []string
+	Positionals    []string
 	Options     map[string]string
 	Flags       map[string]bool
 }
@@ -59,6 +59,64 @@ type ParsedCommand struct {
 type CommandParser struct {
 	Commands *Commands
 	Prefixes []Prefix
+}
+
+func (parser *CommandParser) BuildUsage(command *Command) string {
+	if parser == nil || command == nil {
+		return ""
+	}
+
+	var builder strings.Builder
+
+	builder.WriteString(command.Name)
+
+	for _, argument := range command.Arguments {
+		if argument.Name == "" {
+			continue
+		}
+
+		if argument.Required {
+			fmt.Fprintf(&builder, " <%s>", argument.Name)
+		} else {
+			fmt.Fprintf(&builder, " [%s]", argument.Name)
+		}
+	}
+
+	for _, option := range command.Options {
+		name := option.Name
+
+		if name == "" {
+			continue
+		}
+
+		prefix := parser.optionPrefix()
+
+		if option.HasValue {
+			name += "=<value>"
+		}
+
+		if option.Required {
+			fmt.Fprintf(&builder, " %s%s", prefix, name)
+		} else {
+			fmt.Fprintf(&builder, " [%s%s]", prefix, name)
+		}
+	}
+
+	for _, flag := range command.Flags {
+		if flag.Name == "" {
+			continue
+		}
+
+		prefix := parser.optionPrefix()
+
+		if flag.Default {
+			continue
+		}
+
+		fmt.Fprintf(&builder, " [%s%s]", prefix, flag.Name)
+	}
+
+	return builder.String()
 }
 
 func NewParser(commands *Commands) *CommandParser {
@@ -83,31 +141,38 @@ func (parser *CommandParser) CreateCommand(name string, description string) (*Co
 	}
 
 	if len(name) > MaxCommandNameLength {
-		return nil, fmt.Errorf("command name %q exceeds maximum length of %d", name, MaxCommandNameLength)
+		return nil, fmt.Errorf("command name '%q' exceeds maximum length of '%d'", name, MaxCommandNameLength)
 	}
 
-	command := Command{
+	return &Command{
 		Name:        name,
 		Description: description,
+	}, nil
+}
+
+func (parser *CommandParser) RegisterCommand(command *Command) error {
+	if parser == nil {
+		return fmt.Errorf("command parser is nil")
 	}
 
-	if err := parser.Commands.RegisterCommand(command); err != nil {
-		return nil, err
+	if parser.Commands == nil {
+		return fmt.Errorf("command parser has no command registry")
 	}
 
-	index := parser.Commands.findAvailableIndex(name)
-
-	if index < 0 {
-		return nil, fmt.Errorf("command %q was registered but could not be located", name)
+	if command == nil {
+		return fmt.Errorf("command is nil")
 	}
 
-	return &parser.Commands.Available[index], nil
+	command.Name = strings.TrimSpace(command.Name)
+	return parser.Commands.RegisterCommand(*command)
 }
 
 func (parser *CommandParser) Parse(arguments []string) (*ParsedCommand, error) {
 	if parser == nil {
 		return nil, fmt.Errorf("command parser is nil")
 	}
+
+	fmt.Printf("DEBUG arguments: %#v\n", arguments)
 
 	if parser.Commands == nil {
 		return nil, fmt.Errorf("command parser has no command registry")
@@ -130,7 +195,7 @@ func (parser *CommandParser) Parse(arguments []string) (*ParsedCommand, error) {
 	}
 
 	if !parser.Commands.IsAvailable(command.Name) {
-		return nil, fmt.Errorf("command %q is unavailable", command.Name)
+		return nil, fmt.Errorf("command '%q' is unavailable", command.Name)
 	}
 
 	parsed, err := parser.parseArguments(command, arguments[1:])
@@ -200,6 +265,28 @@ func (parser *CommandParser) UsePrefixes(prefixes ...string) (*CommandParser, er
 	}
 
 	return parser, nil
+}
+
+func (parser *CommandParser) optionPrefix() string {
+	if parser == nil {
+		return "--"
+	}
+
+	var longest string
+
+	for _, prefix := range parser.Prefixes {
+		value := strings.TrimSpace(prefix.Value)
+
+		if len(value) > len(longest) {
+			longest = value
+		}
+	}
+
+	if longest == "" {
+		return "--"
+	}
+
+	return longest
 }
 
 func (parser *CommandParser) parseArguments(command *Command, arguments []string) (*ParsedArguments, error) {

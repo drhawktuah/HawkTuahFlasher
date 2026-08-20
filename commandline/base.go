@@ -1,7 +1,7 @@
 package commandline
 
 import (
-	"context"
+	stdcontext "context"
 	"fmt"
 	"io"
 	"os"
@@ -25,6 +25,7 @@ type Command struct {
 	Aliases     [MaxAliasesLength]string
 	Name        				  string
 	Description                   string
+	Category					  string
 	Usage       				  string
 
 	Arguments		 []Argument
@@ -38,13 +39,16 @@ type Command struct {
 }
 
 type Context struct {
-	Context context.Context
+	Context 	   stdcontext.Context
 
 	StandardInput  io.Reader
 	StandardOutput io.Writer
 	StandardError  io.Writer
 
-	Verbose bool
+	Commands 	  *Commands
+	Parser 		  *CommandParser
+
+	Verbose        bool
 }
 
 type Dependency struct {
@@ -61,7 +65,11 @@ type DependencyStatus struct {
 	Error      error
 }
 
-func NewContext(context context.Context) *Context {
+func NewContext(context stdcontext.Context) *Context {
+	if context == nil {
+		context = stdcontext.Background()
+	}
+
 	return &Context{
 		Context: context,
 
@@ -72,14 +80,26 @@ func NewContext(context context.Context) *Context {
 }
 
 func (context *Context) PrintLine(arguments ...any) {
+	if context == nil || context.StandardOutput == nil {
+		return
+	}
+
 	fmt.Fprintln(context.StandardOutput, arguments...)
 }
 
 func (context *Context) PrintFormat(format string, arguments ...any) {
+	if context == nil || context.StandardOutput == nil {
+		return
+	}
+
 	fmt.Fprintf(context.StandardOutput, format, arguments...)
 }
 
 func (context *Context) ErrorLine(arguments ...any) {
+	if context == nil || context.StandardOutput == nil {
+		return
+	}
+
 	fmt.Fprintln(context.StandardError, arguments...)
 }
 
@@ -92,7 +112,17 @@ type Commands struct {
 }
 
 func (commands *Commands) IsAvailable(name string) bool {
-	panic("unimplemented")
+	if commands == nil {
+		return false
+	}
+
+	name = strings.TrimSpace(name)
+
+	if name == "" {
+		return false
+	}
+
+	return commands.findAvailableIndex(name) >= 0
 }
 
 func (commands *Commands) removeUnavailable(index int) {
@@ -100,7 +130,7 @@ func (commands *Commands) removeUnavailable(index int) {
 		return
 	}
 
-	copy(commands.Unavailable[index:], commands.Unavailable[index+1:commands.UnavailableLength])
+	copy(commands.Unavailable[index:], commands.Unavailable[index + 1:commands.UnavailableLength])
 
 	commands.UnavailableLength--
 	commands.Unavailable[commands.UnavailableLength] = Command{}
@@ -111,13 +141,15 @@ func (commands *Commands) removeAvailable(index int) {
 		return
 	}
 
-	copy(commands.Available[index:], commands.Available[index+1:commands.AvailableLength])
+	copy(commands.Available[index:], commands.Available[index + 1:commands.AvailableLength])
 
 	commands.AvailableLength--
 	commands.Available[commands.AvailableLength] = Command{}
 }
 
 func (commands *Commands) findUnavailableIndex(name string) int {
+	name = strings.TrimSpace(name)
+
 	for index := 0; index < commands.UnavailableLength; index++ {
 		command := &commands.Unavailable[index]
 
@@ -126,7 +158,7 @@ func (commands *Commands) findUnavailableIndex(name string) int {
 		}
 
 		for _, alias := range command.Aliases {
-			if alias == name {
+			if strings.TrimSpace(alias) == name {
 				return index
 			}
 		}
@@ -136,6 +168,8 @@ func (commands *Commands) findUnavailableIndex(name string) int {
 }
 
 func (commands *Commands) findAvailableIndex(name string) int {
+	name = strings.TrimSpace(name)
+
 	for index := 0; index < commands.AvailableLength; index++ {
 		command := &commands.Available[index]
 
@@ -144,7 +178,7 @@ func (commands *Commands) findAvailableIndex(name string) int {
 		}
 
 		for _, alias := range command.Aliases {
-			if alias == name {
+			if strings.TrimSpace(alias) == name {
 				return index
 			}
 		}
@@ -213,6 +247,9 @@ func (commands *Commands) dependenciesAvailable(command *Command, context *Conte
 
 func (commands *Commands) RegisterCommand(command Command) error {
 	command.Name = strings.TrimSpace(command.Name)
+	command.Category = strings.TrimSpace(command.Category)
+	command.Description = strings.TrimSpace(command.Description)
+	command.Usage = strings.TrimSpace(command.Usage)
 
 	if command.Name == "" {
 		return fmt.Errorf("command name cannot be empty")
@@ -240,11 +277,11 @@ func (commands *Commands) RegisterCommand(command Command) error {
 		}
 
 		if len(alias) > MaxAliasLength {
-			return fmt.Errorf("alias %q for command %q exceeds maximum length of %d", alias, command.Name, MaxAliasLength)
+			return fmt.Errorf("alias '%q' for command '%q' exceeds maximum length of %d", alias, command.Name, MaxAliasLength)
 		}
 
 		if alias == command.Name {
-			return fmt.Errorf("alias %q for command %q is identical to the command name", alias, command.Name)
+			return fmt.Errorf("alias '%q' for command '%q' is identical to the command name", alias, command.Name)
 		}
 
 		command.Aliases[index] = alias
@@ -257,11 +294,7 @@ func (commands *Commands) RegisterCommand(command Command) error {
 		}
 
 		if commands.Exists(alias) {
-			return fmt.Errorf(
-				"alias %q for command %q is already registered",
-				alias,
-				command.Name,
-			)
+			return fmt.Errorf("alias '%q' for command '%q' is already registered", alias, command.Name)
 		}
 	}
 
@@ -272,13 +305,13 @@ func (commands *Commands) RegisterCommand(command Command) error {
 			continue
 		}
 
-		if slices.Contains(command.Aliases[index+1:], alias) {
-			return fmt.Errorf("alias %q is registered more than once for command %q", alias, command.Name)
+		if slices.Contains(command.Aliases[index + 1:], alias) {
+			return fmt.Errorf("alias '%q' is registered more than once for command '%q'", alias, command.Name)
 		}
 	}
 
 	if aliasCount > MaxAliasesLength {
-		return fmt.Errorf("command %q exceeds maximum alias count of %d", command.Name, MaxAliasesLength)
+		return fmt.Errorf("command '%q' exceeds maximum alias count of '%d'", command.Name, MaxAliasesLength)
 	}
 
 	if commands.AvailableLength >= MaxCommandsLength {
@@ -318,6 +351,8 @@ func (commands *Commands) Exists(name string) bool {
 func (commands *Commands) Find(name string) *Command {
 	name = strings.TrimSpace(name)
 
+	fmt.Printf("DEBUG Find: %q\n", name)
+
 	if name == "" {
 		return nil
 	}
@@ -347,18 +382,7 @@ func (commands *Commands) SetAvailable(name string, available bool) bool {
 			return commands.findAvailableIndex(name) >= 0
 		}
 
-		if commands.AvailableLength >= MaxCommandsLength {
-			return false
-		}
-
-		command := commands.Unavailable[index]
-
-		commands.removeUnavailable(index)
-
-		commands.Available[commands.AvailableLength] = command
-		commands.AvailableLength++
-
-		return true
+		return commands.moveUnavailableToAvailable(index)
 	}
 
 	index := commands.findAvailableIndex(name)
@@ -367,21 +391,14 @@ func (commands *Commands) SetAvailable(name string, available bool) bool {
 		return commands.findUnavailableIndex(name) >= 0
 	}
 
-	if commands.UnavailableLength >= MaxCommandsLength {
-		return false
-	}
-
-	command := commands.Available[index]
-
-	commands.removeAvailable(index)
-
-	commands.Unavailable[commands.UnavailableLength] = command
-	commands.UnavailableLength++
-
-	return true
+	return commands.moveAvailableToUnavailable(index)
 }
 
 func (commands *Commands) CheckDependencies(command *Command, context *Context) bool {
+	if command == nil {
+		return false
+	}
+
 	command.DependencyStatus = command.DependencyStatus[:0]
 
 	available := true
@@ -392,24 +409,45 @@ func (commands *Commands) CheckDependencies(command *Command, context *Context) 
 			Available:  true,
 		}
 
-		if dependency.Check != nil {
-			if err := dependency.Check(context); err != nil {
-				status.Available = false
-				status.Error = err
-
-				if dependency.Required {
-					available = false
-				}
-			}
-		} else if dependency.Required {
+		if dependency.Check == nil {
 			status.Available = false
-			status.Error = fmt.Errorf("dependency has no check function")
+			status.Error = fmt.Errorf("dependency %q has no check function", dependency.Name)
 
-			available = false
+			if dependency.Required {
+				available = false
+			}
+
+			command.DependencyStatus = append(command.DependencyStatus, status)
+			continue
+		}
+
+		if err := dependency.Check(context); err != nil {
+			status.Available = false
+			status.Error = err
+
+			if dependency.Required {
+				available = false
+			}
 		}
 
 		command.DependencyStatus = append(command.DependencyStatus, status)
 	}
 
 	return available
+}
+
+func (commands *Commands) CheckAllDependencies(context *Context) {
+	if commands == nil {
+		return
+	}
+
+	for index := 0; index < commands.AvailableLength; index++ {
+		command := &commands.Available[index]
+		commands.CheckDependencies(command, context)
+	}
+
+	for index := 0; index < commands.UnavailableLength; index++ {
+		command := &commands.Unavailable[index]
+		commands.CheckDependencies(command, context)
+	}
 }
