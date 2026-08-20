@@ -19,8 +19,7 @@ const (
 )
 
 const (
-	ansiReset = "\033[0m"
-
+	ansiReset   = "\033[0m"
 	ansiGray    = "\033[90m"
 	ansiGreen   = "\033[32m"
 	ansiYellow  = "\033[33m"
@@ -31,9 +30,7 @@ const (
 type Logger struct {
 	output io.Writer
 	level  LogLevel
-
 	color  bool
-
 	mutex  sync.Mutex
 }
 
@@ -42,10 +39,10 @@ func NewLogger(output io.Writer, level LogLevel) *Logger {
 		output = os.Stderr
 	}
 
-	return &Logger {
+	return &Logger{
 		output: output,
-		level: level,
-		color: true,
+		level:  level,
+		color:  true,
 	}
 }
 
@@ -86,7 +83,6 @@ func (logger *Logger) Log(level LogLevel, format string, arguments ...any) {
 	}
 
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
-
 	levelName := level.String()
 
 	if logger.color {
@@ -120,19 +116,14 @@ func (level LogLevel) String() string {
 	switch level {
 		case LogLevelDebug:
 			return "DEBUG"
-
 		case LogLevelInfo:
 			return "INFO"
-
 		case LogLevelWarning:
 			return "WARNING"
-
 		case LogLevelError:
 			return "ERROR"
-
 		case LogLevelFatal:
 			return "FATAL"
-
 		default:
 			return "UNKNOWN"
 	}
@@ -142,19 +133,14 @@ func (level LogLevel) Color() string {
 	switch level {
 		case LogLevelDebug:
 			return ansiGray
-
 		case LogLevelInfo:
 			return ansiGreen
-
 		case LogLevelWarning:
 			return ansiYellow
-
 		case LogLevelError:
 			return ansiRed
-
 		case LogLevelFatal:
 			return ansiMagenta
-
 		default:
 			return ""
 	}
@@ -183,4 +169,32 @@ func Error(format string, arguments ...any) {
 
 func Fatal(format string, arguments ...any) {
 	DefaultLogger.Fatal(format, arguments...)
+}
+
+func Sprintf(format string, arguments ...any) string {
+	return fmt.Sprintf(format, arguments...)
+}
+
+func Sprint(arguments ...any) string {
+	return fmt.Sprint(arguments...)
+}
+
+func Sprintln(arguments ...any) string {
+	return fmt.Sprintln(arguments...)
+}
+
+func Errorf(format string, arguments ...any) error {
+	return fmt.Errorf(format, arguments...)
+}
+
+func Fprintf(writer io.Writer, format string, arguments ...any) (int, error) {
+	return fmt.Fprintf(writer, format, arguments...)
+}
+
+func Fprint(writer io.Writer, arguments ...any) (int, error) {
+	return fmt.Fprint(writer, arguments...)
+}
+
+func Fprintln(writer io.Writer, arguments ...any) (int, error) {
+	return fmt.Fprintln(writer, arguments...)
 }

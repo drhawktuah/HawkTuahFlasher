@@ -1,31 +1,36 @@
-# @description ESP32 microcontroller family
-# @vendor Espressif Systems
-# @family ESP32
+# ESP32-WROOM-32 device definition
+# @description Espressif ESP32 development board.
+# @platform esp32
 
-name = "ESP32"
+name = "ESP32-WROOM-32"
 vendor = "Espressif"
 family = "ESP32"
 
 detect:
-    # @description Native ESP32 USB
+    # USB-to-UART VID
+    # @description Espressif USB vendor ID
     vid = 0x303A
 
-    # @description Silicon Labs CP210x
-    vid = 0x10C4
-
-    # @description QinHeng CH340/CH341
-    vid = 0x1A86
-
 protocol:
-    # @description ESP32 ROM bootloader
-    bootloader = "esp32-rom"
+    # @description ESP32 ROM bootloader protocol
+    bootloader = "esptool"
 
 flash:
-    # @description Flash baud rate
+    # @description Default flashing baud rate
     baudrate = 921600
 
-    # @description Erase before flashing
+    # Erase the flash before programming
     erase = true
 
-    # @description Verify written data
+    # Verify written data
     verify = true
+
+custom:
+    architecture = "xtensa"
+    chip = "esp32"
+    cores = 2
+    wireless = true
+
+cmake:
+    toolchain = "xtensa-esp-elf"
+    cpu_flags = "-mlongcalls -mtext-section-literals"

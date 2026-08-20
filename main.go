@@ -1,6 +1,7 @@
 package main
 
 import (
+	stdcontext "context"
 	"fmt"
 	"os"
 
@@ -23,7 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	context := commandline.NewContext(nil)
+	context := commandline.NewContext(stdcontext.TODO())
 	context.Commands = commands
 	context.Parser = parser
 

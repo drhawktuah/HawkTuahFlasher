@@ -351,8 +351,6 @@ func (commands *Commands) Exists(name string) bool {
 func (commands *Commands) Find(name string) *Command {
 	name = strings.TrimSpace(name)
 
-	fmt.Printf("DEBUG Find: %q\n", name)
-
 	if name == "" {
 		return nil
 	}

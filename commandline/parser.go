@@ -172,8 +172,6 @@ func (parser *CommandParser) Parse(arguments []string) (*ParsedCommand, error) {
 		return nil, fmt.Errorf("command parser is nil")
 	}
 
-	fmt.Printf("DEBUG arguments: %#v\n", arguments)
-
 	if parser.Commands == nil {
 		return nil, fmt.Errorf("command parser has no command registry")
 	}
