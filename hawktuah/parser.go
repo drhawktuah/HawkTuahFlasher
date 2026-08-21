@@ -1,7 +1,7 @@
 package hawktuah
 
 import (
-	"fmt"
+	"flasher/core"
 	"strconv"
 	"strings"
 )
@@ -13,8 +13,8 @@ const (
 )
 
 type Parser struct {
-	tokens 				 []Token
-	index  				   int
+	tokens []Token
+	index  int
 
 	pendingDocumentation []DocumentationComment
 }
@@ -75,37 +75,37 @@ func (parser *Parser) Parse() (*Definition, error) {
 
 func ValidateDefinition(definition *Definition) error {
 	if definition == nil {
-		return fmt.Errorf("definition is nil")
+		return core.Errorf("definition is nil")
 	}
 
 	if definition.Name == "" {
-		return fmt.Errorf("missing required property: name")
+		return core.Errorf("missing required property: name")
 	}
 
 	if definition.Vendor == "" {
-		return fmt.Errorf("missing required property: vendor")
+		return core.Errorf("missing required property: vendor")
 	}
 
 	if definition.Family == "" {
-		return fmt.Errorf("missing required property: family")
+		return core.Errorf("missing required property: family")
 	}
 
 	if len(definition.Detect.VIDs) == 0 {
-		return fmt.Errorf("no USB VID detection entries defined")
+		return core.Errorf("no USB VID detection entries defined")
 	}
 
 	for index, detection := range definition.Detect.VIDs {
 		if detection.Value == 0 {
-			return fmt.Errorf("detect.vid[%d] cannot be 0x0000", index)
+			return core.Errorf("detect.vid[%d] cannot be 0x0000", index)
 		}
 	}
 
 	if definition.Protocol.Bootloader == "" {
-		return fmt.Errorf("missing required property: protocol.bootloader")
+		return core.Errorf("missing required property: protocol.bootloader")
 	}
 
 	if definition.Flash.Baudrate == 0 {
-		return fmt.Errorf("missing required property: flash.baudrate")
+		return core.Errorf("missing required property: flash.baudrate")
 	}
 
 	return nil
@@ -449,18 +449,18 @@ func (parser *Parser) parseGenericValue(token Token) (Value, error) {
 func (parser *Parser) consumeComments() {
 	for !parser.atEnd() {
 		switch parser.current().Type {
-		case TokenComment:
-			parser.advance()
+			case TokenComment:
+				parser.advance()
 
-		case TokenDocumentation:
-			if parser.current().Documentation != nil {
-				parser.pendingDocumentation = append(parser.pendingDocumentation, *parser.current().Documentation)
-			}
+			case TokenDocumentation:
+				if parser.current().Documentation != nil {
+					parser.pendingDocumentation = append(parser.pendingDocumentation, *parser.current().Documentation)
+				}
 
-			parser.advance()
+				parser.advance()
 
-		default:
-			return
+			default:
+				return
 		}
 	}
 }
@@ -524,13 +524,13 @@ func (parser *Parser) current() Token {
 }
 
 func (parser *Parser) peek() Token {
-	if parser.index + 1 >= len(parser.tokens) {
+	if parser.index+1 >= len(parser.tokens) {
 		return Token{
 			Type: TokenEOF,
 		}
 	}
 
-	return parser.tokens[parser.index + 1]
+	return parser.tokens[parser.index+1]
 }
 
 func (parser *Parser) peekType() TokenType {
@@ -548,7 +548,7 @@ func (parser *Parser) atEnd() bool {
 }
 
 func (parser *Parser) errorf(token Token, format string, arguments ...any) error {
-	return fmt.Errorf("%d:%d: %s", token.Position.Line, token.Position.Column, fmt.Sprintf(format, arguments...))
+	return core.Errorf("%d:%d: %s", token.Position.Line, token.Position.Column, core.Sprintf(format, arguments...))
 }
 
 func parseUint16(value string) (uint16, error) {

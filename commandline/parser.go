@@ -1,7 +1,7 @@
 package commandline
 
 import (
-	"fmt"
+	"flasher/core"
 	"strings"
 )
 
@@ -21,9 +21,9 @@ type Argument struct {
 }
 
 type Option struct {
-	Name          string
+	Name        string
 	Aliases     []string
-	Description   string
+	Description string
 
 	Required bool
 	HasValue bool
@@ -31,9 +31,9 @@ type Option struct {
 }
 
 type Flag struct {
-	Name          string
+	Name        string
 	Aliases     []string
-	Description   string
+	Description string
 
 	Default bool
 }
@@ -45,8 +45,8 @@ type CommandArguments struct {
 }
 
 type ParsedArguments struct {
-	Raw            []string
-	Positionals    []string
+	Raw         []string
+	Positionals []string
 	Options     map[string]string
 	Flags       map[string]bool
 }
@@ -76,9 +76,9 @@ func (parser *CommandParser) BuildUsage(command *Command) string {
 		}
 
 		if argument.Required {
-			fmt.Fprintf(&builder, " <%s>", argument.Name)
+			core.Fprintf(&builder, " <%s>", argument.Name)
 		} else {
-			fmt.Fprintf(&builder, " [%s]", argument.Name)
+			core.Fprintf(&builder, " [%s]", argument.Name)
 		}
 	}
 
@@ -96,9 +96,9 @@ func (parser *CommandParser) BuildUsage(command *Command) string {
 		}
 
 		if option.Required {
-			fmt.Fprintf(&builder, " %s%s", prefix, name)
+			core.Fprintf(&builder, " %s%s", prefix, name)
 		} else {
-			fmt.Fprintf(&builder, " [%s%s]", prefix, name)
+			core.Fprintf(&builder, " [%s%s]", prefix, name)
 		}
 	}
 
@@ -113,7 +113,7 @@ func (parser *CommandParser) BuildUsage(command *Command) string {
 			continue
 		}
 
-		fmt.Fprintf(&builder, " [%s%s]", prefix, flag.Name)
+		core.Fprintf(&builder, " [%s%s]", prefix, flag.Name)
 	}
 
 	return builder.String()
@@ -127,21 +127,21 @@ func NewParser(commands *Commands) *CommandParser {
 
 func (parser *CommandParser) CreateCommand(name string, description string) (*Command, error) {
 	if parser == nil {
-		return nil, fmt.Errorf("command parser is nil")
+		return nil, core.Errorf("command parser is nil")
 	}
 
 	if parser.Commands == nil {
-		return nil, fmt.Errorf("command parser has no command registry")
+		return nil, core.Errorf("command parser has no command registry")
 	}
 
 	name = strings.TrimSpace(name)
 
 	if name == "" {
-		return nil, fmt.Errorf("command name cannot be empty")
+		return nil, core.Errorf("command name cannot be empty")
 	}
 
 	if len(name) > MaxCommandNameLength {
-		return nil, fmt.Errorf("command name '%q' exceeds maximum length of '%d'", name, MaxCommandNameLength)
+		return nil, core.Errorf("command name '%q' exceeds maximum length of '%d'", name, MaxCommandNameLength)
 	}
 
 	return &Command{
@@ -152,15 +152,15 @@ func (parser *CommandParser) CreateCommand(name string, description string) (*Co
 
 func (parser *CommandParser) RegisterCommand(command *Command) error {
 	if parser == nil {
-		return fmt.Errorf("command parser is nil")
+		return core.Errorf("command parser is nil")
 	}
 
 	if parser.Commands == nil {
-		return fmt.Errorf("command parser has no command registry")
+		return core.Errorf("command parser has no command registry")
 	}
 
 	if command == nil {
-		return fmt.Errorf("command is nil")
+		return core.Errorf("command is nil")
 	}
 
 	command.Name = strings.TrimSpace(command.Name)
@@ -169,31 +169,31 @@ func (parser *CommandParser) RegisterCommand(command *Command) error {
 
 func (parser *CommandParser) Parse(arguments []string) (*ParsedCommand, error) {
 	if parser == nil {
-		return nil, fmt.Errorf("command parser is nil")
+		return nil, core.Errorf("command parser is nil")
 	}
 
 	if parser.Commands == nil {
-		return nil, fmt.Errorf("command parser has no command registry")
+		return nil, core.Errorf("command parser has no command registry")
 	}
 
 	if len(arguments) == 0 {
-		return nil, fmt.Errorf("no command specified")
+		return nil, core.Errorf("no command specified")
 	}
 
 	commandName := strings.TrimSpace(arguments[0])
 
 	if commandName == "" {
-		return nil, fmt.Errorf("command name cannot be empty")
+		return nil, core.Errorf("command name cannot be empty")
 	}
 
 	command := parser.Commands.Find(commandName)
 
 	if command == nil {
-		return nil, fmt.Errorf("unknown command %q", commandName)
+		return nil, core.Errorf("unknown command %q", commandName)
 	}
 
 	if !parser.Commands.IsAvailable(command.Name) {
-		return nil, fmt.Errorf("command '%q' is unavailable", command.Name)
+		return nil, core.Errorf("command '%q' is unavailable", command.Name)
 	}
 
 	parsed, err := parser.parseArguments(command, arguments[1:])
@@ -210,7 +210,7 @@ func (parser *CommandParser) Parse(arguments []string) (*ParsedCommand, error) {
 
 func (parser *CommandParser) UsePrefixes(prefixes ...string) (*CommandParser, error) {
 	if len(prefixes) > MaxPrefixSize {
-		return nil, fmt.Errorf("max amount of prefixes allowed is %d", MaxPrefixSize)
+		return nil, core.Errorf("max amount of prefixes allowed is %d", MaxPrefixSize)
 	}
 
 	for _, value := range prefixes {
@@ -221,7 +221,7 @@ func (parser *CommandParser) UsePrefixes(prefixes ...string) (*CommandParser, er
 		}
 
 		if len(value) > MaxPrefixLength {
-			return nil, fmt.Errorf("prefix length for '%q' is %d. expected length of at most %d", value, len(value), MaxPrefixLength)
+			return nil, core.Errorf("prefix length for '%q' is %d. expected length of at most %d", value, len(value), MaxPrefixLength)
 		}
 
 		exists := false
@@ -238,7 +238,7 @@ func (parser *CommandParser) UsePrefixes(prefixes ...string) (*CommandParser, er
 		}
 
 		if len(parser.Prefixes) >= MaxPrefixSize {
-			return nil, fmt.Errorf("max amount of prefixes allowed is %d", MaxPrefixSize)
+			return nil, core.Errorf("max amount of prefixes allowed is %d", MaxPrefixSize)
 		}
 
 		parser.Prefixes = append(parser.Prefixes, Prefix{
@@ -247,15 +247,15 @@ func (parser *CommandParser) UsePrefixes(prefixes ...string) (*CommandParser, er
 	}
 
 	if prefixesLength := len(parser.Prefixes); prefixesLength < 1 {
-		prefix_one := Prefix {
+		prefix_one := Prefix{
 			Value: "--",
 		}
 
-		prefix_two := Prefix {
+		prefix_two := Prefix{
 			Value: "-",
 		}
 
-		prefix_three := Prefix {
+		prefix_three := Prefix{
 			Value: "/",
 		}
 
@@ -315,7 +315,7 @@ func (parser *CommandParser) parseArguments(command *Command, arguments []string
 		}
 
 		if remainder == "" {
-			result.Positionals = append(result.Positionals, arguments[index + 1:]...)
+			result.Positionals = append(result.Positionals, arguments[index+1:]...)
 			break
 		}
 
@@ -365,12 +365,12 @@ func (parser *CommandParser) parsePrefixed(command *Command, value string, argum
 
 	if equals := strings.IndexByte(value, '='); equals >= 0 {
 		name = value[:equals]
-		optionValue = value[equals + 1:]
+		optionValue = value[equals+1:]
 	}
 
 	if flag, found := findFlag(command, name); found {
 		if optionValue != "" {
-			return index, fmt.Errorf("flag %q does not accept a value", name)
+			return index, core.Errorf("flag %q does not accept a value", name)
 		}
 
 		result.Flags[flag.Name] = true
@@ -380,12 +380,12 @@ func (parser *CommandParser) parsePrefixed(command *Command, value string, argum
 	option, found := findOption(command, name)
 
 	if !found {
-		return index, fmt.Errorf("unknown option %q", name)
+		return index, core.Errorf("unknown option %q", name)
 	}
 
 	if !option.HasValue {
 		if optionValue != "" {
-			return index, fmt.Errorf("option %q does not accept a value", name)
+			return index, core.Errorf("option %q does not accept a value", name)
 		}
 
 		result.Options[option.Name] = "true"
@@ -393,8 +393,8 @@ func (parser *CommandParser) parsePrefixed(command *Command, value string, argum
 	}
 
 	if optionValue == "" {
-		if index + 1 >= len(arguments) {
-			return index, fmt.Errorf("option %q requires a value", name)
+		if index+1 >= len(arguments) {
+			return index, core.Errorf("option %q requires a value", name)
 		}
 
 		index++
@@ -459,7 +459,7 @@ func (parser *CommandParser) validateArguments(command *Command, result *ParsedA
 	}
 
 	if len(result.Positionals) < requiredArguments {
-		return fmt.Errorf("command %q requires at least %d positional argument(s)", command.Name, requiredArguments)
+		return core.Errorf("command %q requires at least %d positional argument(s)", command.Name, requiredArguments)
 	}
 
 	for _, option := range command.Options {
@@ -468,7 +468,7 @@ func (parser *CommandParser) validateArguments(command *Command, result *ParsedA
 		}
 
 		if _, exists := result.Options[option.Name]; !exists {
-			return fmt.Errorf("required option %q is missing", option.Name)
+			return core.Errorf("required option %q is missing", option.Name)
 		}
 	}
 

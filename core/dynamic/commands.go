@@ -1,7 +1,7 @@
 package dynamic
 
 import (
-	"fmt"
+	"flasher/core"
 	"go/ast"
 	goparser "go/parser"
 	"go/token"
@@ -16,21 +16,22 @@ type CommandDetails struct {
 	Name        string
 	Description string
 	Category    string
+	Package     string
 	Path        string
 }
 
 func DiscoverCommands(root string) ([]CommandDetails, error) {
 	if root == "" {
-		return nil, fmt.Errorf("command directory is empty")
+		return nil, core.Errorf("command directory is empty")
 	}
 
 	info, err := os.Stat(root)
 	if err != nil {
-		return nil, fmt.Errorf("stat command directory: %w", err)
+		return nil, core.Errorf("stat command directory: %w", err)
 	}
 
 	if !info.IsDir() {
-		return nil, fmt.Errorf("command path %q is not a directory", root)
+		return nil, core.Errorf("command path %q is not a directory", root)
 	}
 
 	commands := make([]CommandDetails, 0)
@@ -49,7 +50,6 @@ func DiscoverCommands(root string) ([]CommandDetails, error) {
 		}
 
 		name := entry.Name()
-
 		if name == "" || strings.HasPrefix(name, ".") || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
 			return nil
 		}
@@ -65,7 +65,7 @@ func DiscoverCommands(root string) ([]CommandDetails, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("discover commands: %w", err)
+		return nil, core.Errorf("discover commands: %w", err)
 	}
 
 	sort.Slice(commands, func(i, j int) bool {
@@ -86,20 +86,14 @@ func DiscoverCommands(root string) ([]CommandDetails, error) {
 func parseCommandFile(root string, path string) ([]CommandDetails, error) {
 	fileSet := token.NewFileSet()
 
-	file, err := goparser.ParseFile(
-		fileSet,
-		path,
-		nil,
-		goparser.ParseComments,
-	)
-
+	file, err := goparser.ParseFile(fileSet, path, nil, goparser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("parse command file %q: %w", path, err)
+		return nil, core.Errorf("parse command file %q: %w", path, err)
 	}
 
 	relativePath, err := filepath.Rel(root, path)
 	if err != nil {
-		return nil, fmt.Errorf("resolve command path %q: %w", path, err)
+		return nil, core.Errorf("resolve command path %q: %w", path, err)
 	}
 
 	category := filepath.Dir(relativePath)
@@ -109,6 +103,7 @@ func parseCommandFile(root string, path string) ([]CommandDetails, error) {
 	}
 
 	category = filepath.ToSlash(category)
+
 	commands := make([]CommandDetails, 0)
 
 	ast.Inspect(file, func(node ast.Node) bool {
@@ -123,6 +118,7 @@ func parseCommandFile(root string, path string) ([]CommandDetails, error) {
 
 		details := CommandDetails{
 			Category: category,
+			Package:  file.Name.Name,
 			Path:     path,
 		}
 
@@ -147,7 +143,7 @@ func parseCommandFile(root string, path string) ([]CommandDetails, error) {
 					if value, ok := stringValue(field.Value); ok {
 						details.Description = value
 					}
-				}
+			}
 		}
 
 		if details.Name != "" {
@@ -171,10 +167,11 @@ func isCommandComposite(composite *ast.CompositeLit) bool {
 				return false
 			}
 
-			return expression.Sel.Name == "Command" && packageIdentifier.Name == "commandline"
+			return expression.Sel.Name == "Command" &&
+				packageIdentifier.Name == "commandline"
 
-		default:
-			return false
+	default:
+		return false
 	}
 }
 
@@ -198,7 +195,7 @@ func stringValue(expression ast.Expr) (string, bool) {
 
 func unquoteString(value string) (string, error) {
 	if len(value) < 2 {
-		return "", fmt.Errorf("invalid string literal")
+		return "", core.Errorf("invalid string literal")
 	}
 
 	switch value[0] {
@@ -209,7 +206,7 @@ func unquoteString(value string) (string, error) {
 			return value[1 : len(value)-1], nil
 
 		default:
-			return "", fmt.Errorf("unsupported string literal")
+			return "", core.Errorf("unsupported string literal")
 	}
 }
 

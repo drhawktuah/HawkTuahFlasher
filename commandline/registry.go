@@ -5,7 +5,7 @@ import "sync"
 type CommandRegistration func(*CommandParser) error
 
 var (
-	registryMutex   sync.RWMutex
+	registryMutex sync.RWMutex
 	registry      []CommandRegistration
 )
 

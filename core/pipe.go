@@ -2,23 +2,22 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"sync"
 )
 
 type Pipe struct {
-	reader 		*os.File
-	writer 		*os.File
+	reader *os.File
+	writer *os.File
 
-	output 		 io.Writer
+	output io.Writer
 
-	mutex 		 sync.Mutex
-	waitgroup    sync.WaitGroup
+	mutex     sync.Mutex
+	waitgroup sync.WaitGroup
 
-	started 	 bool
-	closed  	 bool
+	started bool
+	closed  bool
 }
 
 type Pipes struct {
@@ -29,7 +28,7 @@ type Pipes struct {
 func NewPipe() (*Pipe, error) {
 	reader, writer, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("create pipe: %w", err)
+		return nil, Errorf("create pipe: %w", err)
 	}
 
 	return &Pipe{
@@ -72,25 +71,25 @@ func (pipe *Pipe) Start() error {
 	if pipe.closed {
 		pipe.mutex.Unlock()
 
-		return fmt.Errorf("pipe is closed")
+		return Errorf("pipe is closed")
 	}
 
 	if pipe.started {
 		pipe.mutex.Unlock()
 
-		return fmt.Errorf("pipe has already been started")
+		return Errorf("pipe has already been started")
 	}
 
 	if pipe.reader == nil {
 		pipe.mutex.Unlock()
 
-		return fmt.Errorf("pipe has no reader")
+		return Errorf("pipe has no reader")
 	}
 
 	if pipe.output == nil {
 		pipe.mutex.Unlock()
 
-		return fmt.Errorf("pipe has no output")
+		return Errorf("pipe has no output")
 	}
 
 	reader := pipe.reader
@@ -151,14 +150,14 @@ func (pipe *Pipe) Close() error {
 func NewPipes() (*Pipes, error) {
 	stdout, err := NewPipe()
 	if err != nil {
-		return nil, fmt.Errorf("create stdout pipe: %w", err)
+		return nil, Errorf("create stdout pipe: %w", err)
 	}
 
 	stderr, err := NewPipe()
 	if err != nil {
 		_ = stdout.Close()
 
-		return nil, fmt.Errorf("create stderr pipe: %w", err)
+		return nil, Errorf("create stderr pipe: %w", err)
 	}
 
 	return &Pipes{
@@ -169,25 +168,25 @@ func NewPipes() (*Pipes, error) {
 
 func (pipes *Pipes) Start() error {
 	if pipes == nil {
-		return fmt.Errorf("pipes is nil")
+		return Errorf("pipes is nil")
 	}
 
 	if pipes.Stdout == nil {
-		return fmt.Errorf("stdout pipe is nil")
+		return Errorf("stdout pipe is nil")
 	}
 
 	if pipes.Stderr == nil {
-		return fmt.Errorf("stderr pipe is nil")
+		return Errorf("stderr pipe is nil")
 	}
 
 	if err := pipes.Stdout.Start(); err != nil {
-		return fmt.Errorf("start stdout pipe: %w", err)
+		return Errorf("start stdout pipe: %w", err)
 	}
 
 	if err := pipes.Stderr.Start(); err != nil {
 		_ = pipes.Stdout.Close()
 
-		return fmt.Errorf("start stderr pipe: %w", err)
+		return Errorf("start stderr pipe: %w", err)
 	}
 
 	return nil

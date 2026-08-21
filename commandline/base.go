@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"flasher/core"
 )
 
 const (
@@ -23,14 +24,14 @@ const (
 
 type Command struct {
 	Aliases     [MaxAliasesLength]string
-	Name        				  string
-	Description                   string
-	Category					  string
-	Usage       				  string
+	Name        string
+	Description string
+	Category    string
+	Usage       string
 
-	Arguments		 []Argument
-	Options   		 []Option
-	Flags     		 []Flag
+	Arguments []Argument
+	Options   []Option
+	Flags     []Flag
 
 	Dependencies     []Dependency
 	DependencyStatus []DependencyStatus
@@ -39,16 +40,16 @@ type Command struct {
 }
 
 type Context struct {
-	Context 	   stdcontext.Context
+	Context stdcontext.Context
 
 	StandardInput  io.Reader
 	StandardOutput io.Writer
 	StandardError  io.Writer
 
-	Commands 	  *Commands
-	Parser 		  *CommandParser
+	Commands *Commands
+	Parser   *CommandParser
 
-	Verbose        bool
+	Verbose bool
 }
 
 type Dependency struct {
@@ -84,7 +85,7 @@ func (context *Context) PrintLine(arguments ...any) {
 		return
 	}
 
-	fmt.Fprintln(context.StandardOutput, arguments...)
+	core.Println(context.StandardOutput, arguments...)
 }
 
 func (context *Context) PrintFormat(format string, arguments ...any) {
@@ -92,7 +93,7 @@ func (context *Context) PrintFormat(format string, arguments ...any) {
 		return
 	}
 
-	fmt.Fprintf(context.StandardOutput, format, arguments...)
+	core.Printf(context.StandardOutput, format, arguments...)
 }
 
 func (context *Context) ErrorLine(arguments ...any) {
@@ -130,7 +131,7 @@ func (commands *Commands) removeUnavailable(index int) {
 		return
 	}
 
-	copy(commands.Unavailable[index:], commands.Unavailable[index + 1:commands.UnavailableLength])
+	copy(commands.Unavailable[index:], commands.Unavailable[index+1:commands.UnavailableLength])
 
 	commands.UnavailableLength--
 	commands.Unavailable[commands.UnavailableLength] = Command{}
@@ -141,7 +142,7 @@ func (commands *Commands) removeAvailable(index int) {
 		return
 	}
 
-	copy(commands.Available[index:], commands.Available[index + 1:commands.AvailableLength])
+	copy(commands.Available[index:], commands.Available[index+1:commands.AvailableLength])
 
 	commands.AvailableLength--
 	commands.Available[commands.AvailableLength] = Command{}
@@ -252,19 +253,19 @@ func (commands *Commands) RegisterCommand(command Command) error {
 	command.Usage = strings.TrimSpace(command.Usage)
 
 	if command.Name == "" {
-		return fmt.Errorf("command name cannot be empty")
+		return core.Errorf("command name cannot be empty")
 	}
 
 	if len(command.Name) > MaxCommandNameLength {
-		return fmt.Errorf("command name %q exceeds maximum length of %d", command.Name, MaxCommandNameLength)
+		return core.Errorf("command name %q exceeds maximum length of %d", command.Name, MaxCommandNameLength)
 	}
 
 	if command.Run == nil {
-		return fmt.Errorf("command %q has no run function", command.Name)
+		return core.Errorf("command %q has no run function", command.Name)
 	}
 
 	if commands.Exists(command.Name) {
-		return fmt.Errorf("command %q is already registered", command.Name)
+		return core.Errorf("command %q is already registered", command.Name)
 	}
 
 	aliasCount := 0
@@ -277,11 +278,11 @@ func (commands *Commands) RegisterCommand(command Command) error {
 		}
 
 		if len(alias) > MaxAliasLength {
-			return fmt.Errorf("alias '%q' for command '%q' exceeds maximum length of %d", alias, command.Name, MaxAliasLength)
+			return core.Errorf("alias '%q' for command '%q' exceeds maximum length of %d", alias, command.Name, MaxAliasLength)
 		}
 
 		if alias == command.Name {
-			return fmt.Errorf("alias '%q' for command '%q' is identical to the command name", alias, command.Name)
+			return core.Errorf("alias '%q' for command '%q' is identical to the command name", alias, command.Name)
 		}
 
 		command.Aliases[index] = alias
@@ -294,7 +295,7 @@ func (commands *Commands) RegisterCommand(command Command) error {
 		}
 
 		if commands.Exists(alias) {
-			return fmt.Errorf("alias '%q' for command '%q' is already registered", alias, command.Name)
+			return core.Errorf("alias '%q' for command '%q' is already registered", alias, command.Name)
 		}
 	}
 
@@ -305,17 +306,17 @@ func (commands *Commands) RegisterCommand(command Command) error {
 			continue
 		}
 
-		if slices.Contains(command.Aliases[index + 1:], alias) {
-			return fmt.Errorf("alias '%q' is registered more than once for command '%q'", alias, command.Name)
+		if slices.Contains(command.Aliases[index+1:], alias) {
+			return core.Errorf("alias '%q' is registered more than once for command '%q'", alias, command.Name)
 		}
 	}
 
 	if aliasCount > MaxAliasesLength {
-		return fmt.Errorf("command '%q' exceeds maximum alias count of '%d'", command.Name, MaxAliasesLength)
+		return core.Errorf("command '%q' exceeds maximum alias count of '%d'", command.Name, MaxAliasesLength)
 	}
 
 	if commands.AvailableLength >= MaxCommandsLength {
-		return fmt.Errorf("maximum number of available commands (%d) reached", MaxCommandsLength)
+		return core.Errorf("maximum number of available commands (%d) reached", MaxCommandsLength)
 	}
 
 	commands.Available[commands.AvailableLength] = command
@@ -409,7 +410,7 @@ func (commands *Commands) CheckDependencies(command *Command, context *Context) 
 
 		if dependency.Check == nil {
 			status.Available = false
-			status.Error = fmt.Errorf("dependency %q has no check function", dependency.Name)
+			status.Error = core.Errorf("dependency %q has no check function", dependency.Name)
 
 			if dependency.Required {
 				available = false

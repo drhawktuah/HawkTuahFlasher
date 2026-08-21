@@ -1,9 +1,10 @@
 package hawktuah_test
 
 import (
-	"testing"
 	"flasher/hawktuah"
+	"testing"
 )
+
 func TestParseESP32Definition(t *testing.T) {
 	source := `
 name = "ESP32-WROOM-32"

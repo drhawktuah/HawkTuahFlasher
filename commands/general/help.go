@@ -1,11 +1,11 @@
 package general
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
 	"flasher/commandline"
+	"flasher/core"
 )
 
 const (
@@ -16,8 +16,8 @@ const (
 	TreeMiddleCommand = "├─ "
 	TreeLastCommand   = "╰─ "
 
-	TreeVertical = "│  "
-	TreeEmpty    = "   "
+	TreeVertical  = "│  "
+	TreeEmpty     = "   "
 	TreeSeparator = "┊"
 )
 
@@ -26,9 +26,9 @@ type CommandGroup struct {
 	Commands []commandline.Command
 }
 
-func Register(parser *commandline.CommandParser) error {
+func RegisterHelp(parser *commandline.CommandParser) error {
 	if parser == nil {
-		return fmt.Errorf("command parser is nil")
+		return core.Errorf("command parser is nil")
 	}
 
 	command, err := parser.CreateCommand(
@@ -39,7 +39,7 @@ func Register(parser *commandline.CommandParser) error {
 		return err
 	}
 
-	command.Category = "system"
+	command.Category = "general"
 	command.Aliases[0] = "h"
 	command.Aliases[1] = "?"
 
@@ -58,15 +58,15 @@ func Register(parser *commandline.CommandParser) error {
 
 func RunHelp(context *commandline.Context, arguments []string) error {
 	if context == nil {
-		return fmt.Errorf("command context is nil")
+		return core.Errorf("command context is nil")
 	}
 
 	if context.Commands == nil {
-		return fmt.Errorf("command registry is unavailable")
+		return core.Errorf("command registry is unavailable")
 	}
 
 	if context.Parser == nil {
-		return fmt.Errorf("command parser is unavailable")
+		return core.Errorf("command parser is unavailable")
 	}
 
 	if len(arguments) > 0 {
@@ -78,12 +78,12 @@ func RunHelp(context *commandline.Context, arguments []string) error {
 }
 
 func printCommandTree(context *commandline.Context, commands *commandline.Commands) {
-	context.PrintLine(commandline.Name, "- command line interface")
+	context.PrintFormat("%s - command line interface %s", commandline.Name, commandline.Version)
 
 	context.PrintLine()
 
 	context.PrintLine("Usage:")
-	context.PrintFormat("  %s <command> [arguments]\n", commandline.Name,)
+	context.PrintFormat("  %s <command> [arguments]\n", commandline.Name)
 
 	context.PrintLine()
 	context.PrintLine("Commands:")
@@ -106,7 +106,7 @@ func printCommandGroup(context *commandline.Context, group CommandGroup, index i
 		return
 	}
 
-	lastCategory := index == total - 1
+	lastCategory := index == total-1
 	categoryPrefix := TreeMiddleCategory
 
 	switch {
@@ -123,7 +123,7 @@ func printCommandGroup(context *commandline.Context, group CommandGroup, index i
 	context.PrintLine(categoryPrefix + group.Name)
 
 	for commandIndex, command := range group.Commands {
-		lastCommand := commandIndex == len(group.Commands) - 1
+		lastCommand := commandIndex == len(group.Commands)-1
 		commandPrefix := TreeMiddleCommand
 
 		if lastCommand {
@@ -194,13 +194,13 @@ func printCommandHelp(context *commandline.Context, parser *commandline.CommandP
 	name = strings.TrimSpace(name)
 
 	if name == "" {
-		return fmt.Errorf("command name cannot be empty")
+		return core.Errorf("command name cannot be empty")
 	}
 
 	command := commands.Find(name)
 
 	if command == nil {
-		return fmt.Errorf("unknown command %q", name)
+		return core.Errorf("unknown command %q", name)
 	}
 
 	context.PrintLine()

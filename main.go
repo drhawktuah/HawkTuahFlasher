@@ -2,11 +2,11 @@ package main
 
 import (
 	stdcontext "context"
-	"fmt"
 	"os"
 
 	"flasher/commandline"
 	general "flasher/commands/general"
+	"flasher/core"
 )
 
 func main() {
@@ -15,12 +15,12 @@ func main() {
 	parser := commandline.NewParser(commands)
 
 	if _, err := parser.UsePrefixes("--", "-", "/"); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		core.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	if err := general.Register(parser); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	if err := general.(parser); err != nil {
+		core.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 

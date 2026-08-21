@@ -146,10 +146,29 @@ func (level LogLevel) Color() string {
 	}
 }
 
-var DefaultLogger = NewLogger(
-	os.Stderr,
-	LogLevelInfo,
-)
+var DefaultLogger = NewLogger(os.Stderr, LogLevelInfo)
+
+func (logger *Logger) LogWriter(writer io.Writer, level LogLevel, format string, arguments ...any) {
+	logger.mutex.Lock()
+	defer logger.mutex.Unlock()
+
+	if level < logger.level {
+		return
+	}
+
+	if writer == nil {
+		writer = logger.output
+	}
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	levelName := level.String()
+
+	if logger.color {
+		levelName = level.Color() + levelName + ansiReset
+	}
+
+	fmt.Fprintf(writer, "[%s] [%s] %s\n", timestamp, levelName, fmt.Sprintf(format, arguments...))
+}
 
 func Debug(format string, arguments ...any) {
 	DefaultLogger.Debug(format, arguments...)
@@ -197,4 +216,20 @@ func Fprint(writer io.Writer, arguments ...any) (int, error) {
 
 func Fprintln(writer io.Writer, arguments ...any) (int, error) {
 	return fmt.Fprintln(writer, arguments...)
+} 
+
+func Printf(writer io.Writer, format string, arguments ...any) {
+	fmt.Fprintf(writer, format, arguments...)
+}
+
+func Println(writer io.Writer, arguments ...any) {
+	fmt.Fprintln(writer, arguments...)
+}
+
+func (logger *Logger) Printf(format string, arguments ...any) {
+	logger.Log(LogLevelInfo, format, arguments...)
+}
+
+func (logger *Logger) Println(arguments ...any) {
+	logger.Log(LogLevelInfo, "%s", fmt.Sprintln(arguments...))
 }

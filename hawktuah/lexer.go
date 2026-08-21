@@ -1,7 +1,7 @@
 package hawktuah
 
 import (
-	"fmt"
+	"flasher/core"
 	"strings"
 	"unicode"
 )
@@ -9,7 +9,7 @@ import (
 type TokenType uint8
 
 const (
-	CommentPrefix 		= '#'
+	CommentPrefix       = '#'
 	DocumentationPrefix = '@'
 )
 
@@ -97,15 +97,15 @@ func (tokenType TokenType) String() string {
 	}
 }
 
-func NewLexer(source string)* Lexer {
-	return &Lexer {
+func NewLexer(source string) *Lexer {
+	return &Lexer{
 		source: []rune(source),
-		line: 1,
+		line:   1,
 		column: 1,
 	}
 }
 
-func (lexer* Lexer) Lex() ([]Token, error) {
+func (lexer *Lexer) Lex() ([]Token, error) {
 	tokens := make([]Token, 0)
 
 	for {
@@ -128,8 +128,8 @@ func (lexer *Lexer) Next() (Token, error) {
 	lexer.skipWhitespace()
 
 	if lexer.atEnd() {
-		return Token {
-			Type: TokenEOF,
+		return Token{
+			Type:     TokenEOF,
 			Position: lexer.position(),
 		}, nil
 	}
@@ -172,7 +172,7 @@ func (lexer *Lexer) Next() (Token, error) {
 
 				default:
 					return Token{}, lexer.errorf(position, "unexpected character %q", character)
-			}
+				}
 	}
 }
 
@@ -233,14 +233,14 @@ func parseDocumentation(value string, position Position) (DocumentationComment, 
 	value = strings.TrimSpace(value)
 
 	if !strings.HasPrefix(value, string(DocumentationPrefix)) {
-		return DocumentationComment{}, fmt.Errorf("invalid documentation comment")
+		return DocumentationComment{}, core.Errorf("invalid documentation comment")
 	}
 
 	value = strings.TrimPrefix(value, string(DocumentationPrefix))
 	value = strings.TrimSpace(value)
 
 	if value == "" {
-		return DocumentationComment{}, fmt.Errorf("documentation tag cannot be empty at %d:%d", position.Line, position.Column)
+		return DocumentationComment{}, core.Errorf("documentation tag cannot be empty at %d:%d", position.Line, position.Column)
 	}
 
 	tagEnd := strings.IndexAny(value, " \t")
@@ -256,7 +256,7 @@ func parseDocumentation(value string, position Position) (DocumentationComment, 
 	content := strings.TrimSpace(value[tagEnd:])
 
 	if tag == "" {
-		return DocumentationComment{}, fmt.Errorf("documentation tag cannot be empty at %d:%d", position.Line, position.Column)
+		return DocumentationComment{}, core.Errorf("documentation tag cannot be empty at %d:%d", position.Line, position.Column)
 	}
 
 	return DocumentationComment{
@@ -429,11 +429,11 @@ func (lexer *Lexer) current() rune {
 }
 
 func (lexer *Lexer) peek() rune {
-	if lexer.offset + 1 >= len(lexer.source) {
+	if lexer.offset+1 >= len(lexer.source) {
 		return 0
 	}
 
-	return lexer.source[lexer.offset + 1]
+	return lexer.source[lexer.offset+1]
 }
 
 func (lexer *Lexer) advance() {
@@ -466,7 +466,7 @@ func (lexer *Lexer) position() Position {
 }
 
 func (lexer *Lexer) errorf(position Position, format string, arguments ...any) error {
-	return fmt.Errorf("%d:%d: %s", position.Line, position.Column, fmt.Sprintf(format, arguments...))
+	return core.Errorf("%d:%d: %s", position.Line, position.Column, core.Sprintf(format, arguments...))
 }
 
 func isIdentifierStart(character rune) bool {

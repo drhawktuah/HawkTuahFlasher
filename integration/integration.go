@@ -1,7 +1,7 @@
 package integration
 
 import (
-	"fmt"
+	"flasher/core"
 	"io"
 	"os"
 	"os/exec"
@@ -40,7 +40,7 @@ func CurrentPlatform() (Platform, error) {
 			return PlatformMacOS, nil
 
 		default:
-			return "", fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+			return "", core.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
 }
 
@@ -53,22 +53,22 @@ func New(binaryPath string) (*Integration, error) {
 	if binaryPath == "" {
 		binaryPath, err = os.Executable()
 		if err != nil {
-			return nil, fmt.Errorf("resolve executable: %w", err)
+			return nil, core.Errorf("resolve executable: %w", err)
 		}
 	}
 
 	binaryPath, err = filepath.Abs(binaryPath)
 	if err != nil {
-		return nil, fmt.Errorf("resolve executable path: %w", err)
+		return nil, core.Errorf("resolve executable path: %w", err)
 	}
 
 	info, err := os.Stat(binaryPath)
 	if err != nil {
-		return nil, fmt.Errorf("stat executable: %w", err)
+		return nil, core.Errorf("stat executable: %w", err)
 	}
 
 	if info.IsDir() {
-		return nil, fmt.Errorf("executable path is a directory: %s", binaryPath)
+		return nil, core.Errorf("executable path is a directory: %s", binaryPath)
 	}
 
 	return &Integration{
@@ -104,19 +104,19 @@ func defaultInstallPath(platform Platform) string {
 
 func (integration *Integration) Install() error {
 	if integration == nil {
-		return fmt.Errorf("integration is nil")
+		return core.Errorf("integration is nil")
 	}
 
 	if integration.BinaryPath == "" {
-		return fmt.Errorf("binary path is empty")
+		return core.Errorf("binary path is empty")
 	}
 
 	if integration.InstallPath == "" {
-		return fmt.Errorf("install path is empty")
+		return core.Errorf("install path is empty")
 	}
 
 	if err := os.MkdirAll(integration.InstallPath, 0755); err != nil {
-		return fmt.Errorf("create install directory: %w", err)
+		return core.Errorf("create install directory: %w", err)
 	}
 
 	destination := filepath.Join(integration.InstallPath, BinaryName)
@@ -126,12 +126,12 @@ func (integration *Integration) Install() error {
 	}
 
 	if err := copyFile(integration.BinaryPath, destination); err != nil {
-		return fmt.Errorf("install binary: %w", err)
+		return core.Errorf("install binary: %w", err)
 	}
 
 	if integration.Platform != PlatformWindows {
 		if err := os.Chmod(destination, 0755); err != nil {
-			return fmt.Errorf("make binary executable: %w", err)
+			return core.Errorf("make binary executable: %w", err)
 		}
 	}
 
@@ -145,18 +145,18 @@ func (integration *Integration) Install() error {
 			if err := integration.configureWindowsPath(); err != nil {
 				return err
 			}
-		}
+	}
 
 	return nil
 }
 
 func (integration *Integration) Uninstall() error {
 	if integration == nil {
-		return fmt.Errorf("integration is nil")
+		return core.Errorf("integration is nil")
 	}
 
 	if integration.InstallPath == "" {
-		return fmt.Errorf("install path is empty")
+		return core.Errorf("install path is empty")
 	}
 
 	name := BinaryName
@@ -172,7 +172,7 @@ func (integration *Integration) Uninstall() error {
 			return nil
 		}
 
-		return fmt.Errorf("remove binary: %w", err)
+		return core.Errorf("remove binary: %w", err)
 	}
 
 	return nil
@@ -216,7 +216,7 @@ func (integration *Integration) ExecutablePath() string {
 func (integration *Integration) configureUnixPath() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("resolve home directory: %w", err)
+		return core.Errorf("resolve home directory: %w", err)
 	}
 
 	shell := strings.TrimSpace(os.Getenv("SHELL"))
@@ -248,10 +248,10 @@ func (integration *Integration) configureUnixPath() error {
 
 	switch shellName {
 		case "fish":
-			return appendProfileLine(profile, fmt.Sprintf("fish_add_path %s", shellQuote(integration.InstallPath)))
+			return appendProfileLine(profile, core.Sprintf("fish_add_path %s", shellQuote(integration.InstallPath)))
 
 		default:
-			return appendProfileLine(profile, fmt.Sprintf("export PATH=\"%s:$PATH\"", escapeShellDoubleQuote(integration.InstallPath)))
+			return appendProfileLine(profile, core.Sprintf("export PATH=\"%s:$PATH\"", escapeShellDoubleQuote(integration.InstallPath)))
 	}
 }
 
@@ -263,7 +263,7 @@ func (integration *Integration) configureWindowsPath() error {
 	output, err := exec.Command("powershell.exe", "-NoProfile", "-Command", "[Environment]::GetEnvironmentVariable('Path', 'User')").Output()
 
 	if err != nil {
-		return fmt.Errorf("read user PATH: %w", err)
+		return core.Errorf("read user PATH: %w", err)
 	}
 
 	userPath := strings.TrimSpace(string(output))
@@ -283,7 +283,7 @@ func (integration *Integration) configureWindowsPath() error {
 	_, err = exec.Command("powershell.exe", "-NoProfile", "-Command", "[Environment]::SetEnvironmentVariable('Path', $args[0], 'User')", userPath).Output()
 
 	if err != nil {
-		return fmt.Errorf("update user PATH: %w", err)
+		return core.Errorf("update user PATH: %w", err)
 	}
 
 	return nil
@@ -292,7 +292,7 @@ func (integration *Integration) configureWindowsPath() error {
 func appendProfileLine(path string, line string) error {
 	data, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("read shell profile: %w", err)
+		return core.Errorf("read shell profile: %w", err)
 	}
 
 	content := string(data)
@@ -310,11 +310,11 @@ func appendProfileLine(path string, line string) error {
 	content += "\n"
 
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return fmt.Errorf("create profile directory: %w", err)
+		return core.Errorf("create profile directory: %w", err)
 	}
 
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		return fmt.Errorf("write shell profile: %w", err)
+		return core.Errorf("write shell profile: %w", err)
 	}
 
 	return nil
@@ -334,7 +334,7 @@ func copyFile(source, destination string) error {
 		return err
 	}
 
-	output, err := os.OpenFile(destination, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, info.Mode())
+	output, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, info.Mode())
 	if err != nil {
 		return err
 	}
